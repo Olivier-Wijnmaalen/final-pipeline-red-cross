@@ -1,1 +1,3 @@
-export async function GET(){return Response.json({status:"ok",service:"dema-visualizer"});}
+export async function GET() {
+  return Response.json({ status: "ok", service: "dema-visualizer" });
+}

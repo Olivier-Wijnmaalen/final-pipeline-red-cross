@@ -1,4 +1,4 @@
-"""Small file helpers shared by the pipeline and research experiments."""
+"""Small file helpers shared by the pipeline components."""
 
 from __future__ import annotations
 

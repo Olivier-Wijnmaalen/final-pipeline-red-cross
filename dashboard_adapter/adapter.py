@@ -15,7 +15,7 @@ PHASE_NAMES = {
     4: "Controlled, optimizing",
     5: "State of the art, transformational",
 }
-DIMENSION_COLORS = {"A": "#d91e36", "B": "#006f8b", "C": "#5b4b8a"}
+DIMENSION_COLORS = {"A": "#0063AC", "B": "#F26A2B", "C": "#00A9A5"}
 
 
 def framework_structure(prompt_text: str) -> list[dict[str, Any]]:
@@ -56,6 +56,7 @@ def build_dashboard_data(
     result = stage2.get("result", stage2)
     assessments = {item.get("indicator_code"): item for item in result.get("indicator_assessments", [])}
     evidence = {item.get("evidence_id"): item for item in evidence_bank.get("evidence_items", [])}
+    quality_warnings: list[str] = []
     dimensions = framework_structure(prompt_text)
     for dimension in dimensions:
         dimension["color"] = DIMENSION_COLORS[dimension["id"]]
@@ -68,9 +69,13 @@ def build_dashboard_data(
                 score = _score(assessment.get("phase_score"))
                 supporting_ids = assessment.get("evidence_supporting_score", [])
                 limiting_ids = assessment.get("contrary_or_limiting_evidence", [])
-                missing = [identifier for identifier in [*supporting_ids, *limiting_ids] if identifier not in evidence]
-                if missing:
-                    raise ValueError(f"Assessment references unknown evidence IDs: {sorted(set(missing))}")
+                unresolved = sorted({
+                    i for i in [*supporting_ids, *limiting_ids] if i not in evidence
+                })
+                if unresolved:
+                    quality_warnings.append(
+                        f"{indicator['indicator_code']}: model output references unknown evidence IDs {unresolved}"
+                    )
                 indicator.update({
                     "score_status": "scored" if score else "insufficient_evidence",
                     "phase_score": score,
@@ -80,8 +85,9 @@ def build_dashboard_data(
                     "next_phase_gap": assessment.get("next_phase_gap", ""),
                     "contrary_or_limiting_reasoning": assessment.get("contrary_or_limiting_reasoning", ""),
                     "requirement_checks": assessment.get("assigned_phase_requirement_checks", []),
-                    "supporting_evidence": [evidence[i] for i in supporting_ids],
-                    "limiting_evidence": [evidence[i] for i in limiting_ids],
+                    "supporting_evidence": [evidence[i] for i in supporting_ids if i in evidence],
+                    "limiting_evidence": [evidence[i] for i in limiting_ids if i in evidence],
+                    "unresolved_evidence_references": unresolved,
                 })
     return {
         "schema_version": "1.0",
@@ -99,7 +105,9 @@ def build_dashboard_data(
             "sample": bool(manifest.get("sample", False)),
         },
         "assessment_summary": result.get("assessment_summary", ""),
-        "validation_warnings": stage2.get("warnings", []),
+        "validation_warnings": list(dict.fromkeys([
+            *stage2.get("warnings", []), *quality_warnings
+        ])),
         "dimensions": dimensions,
     }
 

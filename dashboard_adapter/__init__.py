@@ -1,4 +1,4 @@
-"""Stable adapter between validated pipeline artifacts and the web dashboard."""
+"""Stable adapter between structurally checked pipeline artifacts and the dashboard."""
 
 from .adapter import build_dashboard_data, write_dashboard_data
 

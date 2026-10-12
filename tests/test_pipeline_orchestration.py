@@ -41,6 +41,8 @@ class PipelineOrchestrationTests(unittest.TestCase):
                 return (
                     {
                         "source_id": metadata["source_id"],
+                        "source_file": metadata["source_file"],
+                        "source_url": metadata["source_url"],
                         "processing_unit_id": metadata["processing_unit_id"],
                         "dema_evidence_rows": [
                             {
@@ -63,15 +65,25 @@ class PipelineOrchestrationTests(unittest.TestCase):
                 assessments.append(
                     {
                         "indicator_code": code,
+                        "indicator_name": f"Indicator {code}",
                         "phase_score": 1,
+                        "matched_phase_requirement": "Synthetic requirement.",
                         "evidence_supporting_score": ["SYNTH-0001"],
                         "contrary_or_limiting_evidence": [],
-                        "assigned_phase_requirement_checks": [{"status": "SUPPORTED"}],
-                        "score_reasoning": "word " * 180,
+                        "assigned_phase_requirement_checks": [{
+                            "requirement": "Synthetic requirement.",
+                            "status": "SUPPORTED",
+                            "evidence_ids": ["SYNTH-0001"],
+                            "explanation": "Synthetic explanation.",
+                        }],
+                        "score_reasoning": "Concise synthetic reasoning.",
+                        "contrary_or_limiting_reasoning": "",
+                        "next_phase_gap": "Synthetic gap.",
+                        "framework_ambiguity": "",
                     }
                 )
             return (
-                {"assessment_summary": "Synthetic run.", "indicator_assessments": assessments},
+                {"country": "Synthetic", "framework_version": "test", "assessment_summary": "Synthetic run.", "indicator_assessments": assessments},
                 {"response_id": "stage2", "usage": {}, "elapsed_seconds": 0.01},
             )
 
@@ -101,7 +113,9 @@ class PipelineOrchestrationTests(unittest.TestCase):
                 first_call_count = len(calls)
                 self.assertTrue(result.exists())
                 self.assertTrue((output / ".gitignore").exists())
-                self.assertEqual(first_call_count, 3)
+                self.assertTrue((output / "stage1_quotation_qa.json").exists())
+                self.assertTrue((output / "stage2_quality_qa.json").exists())
+                self.assertEqual(first_call_count, 2)
 
                 pipeline.run_assessment(
                     env_path=root / ".env",

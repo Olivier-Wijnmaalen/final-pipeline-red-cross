@@ -17,6 +17,12 @@ class IncompleteResponseError(RuntimeError):
         self.response = response
 
 
+class UnusableResponseError(RuntimeError):
+    def __init__(self, response: Any, reason: str):
+        super().__init__(f"Unusable model response ({reason})")
+        self.response = response
+
+
 def build_model_client() -> Any:
     from openai import OpenAI
 
@@ -130,7 +136,11 @@ def create_json_response(
             getattr(response, "incomplete_details", None), "reason", "unknown"
         )
         raise IncompleteResponseError(response, reason)
-    return response, parse_json_response(response.output_text or "")
+    try:
+        data = parse_json_response(response.output_text or "")
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise UnusableResponseError(response, f"invalid JSON: {exc}") from exc
+    return response, data
 
 
 def call_model_json(
@@ -185,7 +195,7 @@ def call_model_json(
                 json_mode=json_mode,
                 response_schema=response_schema,
             )
-        except IncompleteResponseError as exc:
+        except (IncompleteResponseError, UnusableResponseError) as exc:
             response = exc.response
             atomic_write_text(
                 artifact_prefix.with_suffix(".raw.txt"), response.output_text or ""
@@ -193,6 +203,10 @@ def call_model_json(
             atomic_write_json(
                 artifact_prefix.with_suffix(".response.json"),
                 response.model_dump(mode="json"),
+            )
+            atomic_write_json(
+                artifact_prefix.with_suffix(".error.json"),
+                {"error_type": type(exc).__name__, "message": str(exc)},
             )
             generation.update(level="ERROR", status_message=str(exc))
             raise

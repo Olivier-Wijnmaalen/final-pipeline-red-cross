@@ -21,7 +21,7 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m pip check
       - run: pip install pip-audit && pip-audit --local --progress-spinner off
-      - run: python -m compileall -q main.py prepare_documents.py dema tests
+      - run: python -m compileall -q main.py prepare_documents.py build_dashboard.py dema dashboard_adapter tests
       - run: python -m unittest discover -s tests -v
   web-checks:
     runs-on: ubuntu-latest

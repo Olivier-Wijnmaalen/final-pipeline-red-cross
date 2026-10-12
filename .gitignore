@@ -7,7 +7,7 @@ __pycache__/
 htmlcov/
 dema_run/
 *_run/
-runs/
+/runs/
 web/.next/
 web/node_modules/
 web/coverage/

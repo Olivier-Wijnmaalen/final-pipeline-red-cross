@@ -21,9 +21,12 @@ class DashboardAdapterTests(unittest.TestCase):
         self.assertEqual(indicators[0]["supporting_evidence"][0]["supporting_quote"], "Exact quote")
         self.assertEqual(indicators[1]["score_status"], "insufficient_evidence")
 
-    def test_unknown_evidence_id_fails(self):
+    def test_unknown_evidence_id_is_reported_without_discarding_score(self):
         stage2 = {"indicator_assessments": [{"indicator_code": "A.1.1", "phase_score": 1, "evidence_supporting_score": ["MISSING"], "contrary_or_limiting_evidence": []}]}
-        with self.assertRaisesRegex(ValueError, "unknown evidence"):
-            build_dashboard_data(stage2, self.bank, self.manifest, self.prompt)
+        data = build_dashboard_data(stage2, self.bank, self.manifest, self.prompt)
+        indicator = data["dimensions"][0]["subdimensions"][0]["indicators"][0]
+        self.assertEqual(indicator["phase_score"], 1)
+        self.assertEqual(indicator["unresolved_evidence_references"], ["MISSING"])
+        self.assertTrue(data["validation_warnings"])
 
 if __name__ == "__main__": unittest.main()
